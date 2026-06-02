@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decentscreenshot",
+  "version": "${version}",
+  "name": "DecentScreenshot",
+  "description": "View your Minecraft screenshots in a gallery inside the game. Press F10 to open.",
+  "authors": [
+    "bloodred"
+  ],
+  "contact": {
+    "homepage": "https://github.com/bloodred/decentscreenshot",
+    "sources":  "https://github.com/bloodred/decentscreenshot"
+  },
+  "license": "CC0-1.0",
+  "icon": "assets/decentscreenshot/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "main": [
+      "me.bloodred.dss.DecentScreenshot"
+    ],
+    "client": [
+      "me.bloodred.dss.client.DecentScreenshotClient"
+    ]
+  },
+  "mixins": [
+    "decentscreenshot.mixins.json",
+    {
+      "config": "decentscreenshot.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.2",
+    "minecraft": "~26.1.2",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
