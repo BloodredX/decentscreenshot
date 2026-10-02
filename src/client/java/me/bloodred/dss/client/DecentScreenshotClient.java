@@ -1,5 +1,6 @@
 package me.bloodred.dss.client;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import me.bloodred.dss.DecentScreenshot;
 import me.bloodred.dss.client.screen.ScreenshotGalleryScreen;
 import net.fabricmc.api.ClientModInitializer;
@@ -7,7 +8,6 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.resources.Identifier;
-import org.lwjgl.glfw.GLFW;
 
 public class DecentScreenshotClient implements ClientModInitializer {
 
@@ -22,15 +22,15 @@ public class DecentScreenshotClient implements ClientModInitializer {
 
         openGalleryKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key." + DecentScreenshot.MOD_ID + ".open_gallery",
-                GLFW.GLFW_KEY_F10,
+                InputConstants.KEY_F10,
                 category
         ));
 
         // Poll keybind each tick on the client
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openGalleryKey.consumeClick()) {
-                if (client.screen == null) {
-                    client.setScreen(new ScreenshotGalleryScreen(null));
+                if (client.gui.screen() == null) {
+                    client.gui.setScreen(new ScreenshotGalleryScreen(null));
                 }
             }
         });

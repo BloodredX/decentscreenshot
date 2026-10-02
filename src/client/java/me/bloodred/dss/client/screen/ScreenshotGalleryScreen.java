@@ -1,5 +1,7 @@
 package me.bloodred.dss.client.screen;
 
+import com.mojang.blaze3d.platform.InputConstants;
+import me.bloodred.dss.DecentScreenshot;
 import me.bloodred.dss.client.texture.ScreenshotTextureCache;
 import me.bloodred.dss.client.util.ScreenshotFinder;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -9,9 +11,10 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.Util;
 
 import java.io.File;
+import java.awt.Desktop;
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -25,7 +28,8 @@ import java.util.List;
 public class ScreenshotGalleryScreen extends Screen {
 
     // ── Layout constants ──────────────────────────────────────────────────────
-    private static final int COLS        = 4;
+    private static final int MAX_COLS    = 8;
+    private static final int CELL_SIZE   = 96;
     private static final int CELL_PAD    = 6;   // padding between cells
     private static final int TOP_BAR_H   = 28;  // header height
     private static final int SCROLL_STEP = 32;
@@ -34,6 +38,8 @@ public class ScreenshotGalleryScreen extends Screen {
     // ── State ─────────────────────────────────────────────────────────────────
     private final Screen parent;
     private List<File> screenshots;
+    private int columns;
+    private int gridLeft;
     private int scrollOffset = 0;   // pixels scrolled down
     private int cellSize;           // computed per screen width
     private int totalGridHeight;    // total pixel height of all rows
@@ -50,11 +56,18 @@ public class ScreenshotGalleryScreen extends Screen {
         screenshots = ScreenshotFinder.getScreenshots();
         scrollOffset = 0;
 
-        // Cell size: divide available width evenly across COLS
-        int usableW = this.width - CELL_PAD * (COLS + 1);
-        cellSize = Math.max(40, usableW / COLS);
+        // Keep thumbnails at a consistent logical size so Minecraft's GUI
+        // scale setting scales them along with the rest of the interface.
+        // Adjust columns to the scaled viewport and center the resulting grid.
+        int availableW = Math.max(1, this.width - CELL_PAD * 2);
+        columns = Math.max(1, Math.min(MAX_COLS,
+                (availableW + CELL_PAD) / (CELL_SIZE + CELL_PAD)));
+        cellSize = Math.max(1, Math.min(CELL_SIZE,
+                (availableW - CELL_PAD * (columns - 1)) / columns));
+        int gridWidth = columns * cellSize + (columns - 1) * CELL_PAD;
+        gridLeft = (this.width - gridWidth) / 2;
 
-        int rows = (int) Math.ceil((double) screenshots.size() / COLS);
+        int rows = (screenshots.size() + columns - 1) / columns;
         totalGridHeight = rows * (cellSize + CELL_PAD) + CELL_PAD;
 
         // Close button top-right
@@ -75,22 +88,33 @@ public class ScreenshotGalleryScreen extends Screen {
         // Open Folder button
         addRenderableWidget(Button.builder(
                 Component.literal("📁 Open Folder"),
-                btn -> Util.getPlatform().openFile(ScreenshotFinder.getScreenshotDirectory())
+                btn -> openScreenshotDirectory()
         ).pos(82, 5).size(84, 18).build());
     }
 
-    @Override
+    private void openScreenshotDirectory() {
+        if (!Desktop.isDesktopSupported()) {
+            return;
+        }
+
+        try {
+            Desktop.getDesktop().open(ScreenshotFinder.getScreenshotDirectory());
+        } catch (IOException | UnsupportedOperationException | SecurityException e) {
+            DecentScreenshot.LOGGER.warn("[DecentScreenshot] Failed to open the screenshots directory", e);
+        }
+    }
+
     public void onClose() {
         ScreenshotTextureCache.releaseAll();
-        minecraft.setScreen(parent);
+        minecraft.gui.setScreen(parent);
     }
 
     // ── Rendering ─────────────────────────────────────────────────────────────
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-        // Full-screen dark overlay
-        graphics.fill(0, 0, this.width, this.height, 0xFF111111);
+        // Let Screen.extractBackground draw Minecraft's standard blurred background.
+        graphics.fill(0, 0, this.width, this.height, 0x55000000);
 
         // Top bar background
         graphics.fill(0, 0, this.width, TOP_BAR_H, 0xFF1E1E2E);
@@ -108,10 +132,10 @@ public class ScreenshotGalleryScreen extends Screen {
         int hoveredIndex = -1;
 
         for (int i = 0; i < screenshots.size(); i++) {
-            int col = i % COLS;
-            int row = i / COLS;
+            int col = i % columns;
+            int row = i / columns;
 
-            int x = CELL_PAD + col * (cellSize + CELL_PAD);
+            int x = gridLeft + col * (cellSize + CELL_PAD);
             int y = bodyTop + CELL_PAD + row * (cellSize + CELL_PAD) - scrollOffset;
 
             // Cull cells outside viewport
@@ -242,14 +266,14 @@ public class ScreenshotGalleryScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() == 0) {
+        if (event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
             double mouseX = event.x();
             double mouseY = event.y();
             int bodyTop = TOP_BAR_H + 1;
             for (int i = 0; i < screenshots.size(); i++) {
-                int col = i % COLS;
-                int row = i / COLS;
-                int x   = CELL_PAD + col * (cellSize + CELL_PAD);
+                int col = i % columns;
+                int row = i / columns;
+                int x   = gridLeft + col * (cellSize + CELL_PAD);
                 int y   = bodyTop + CELL_PAD + row * (cellSize + CELL_PAD) - scrollOffset;
 
                 if (mouseX >= x && mouseX < x + cellSize
@@ -292,7 +316,7 @@ public class ScreenshotGalleryScreen extends Screen {
         boolean hasPrev = index > 0;
         boolean hasNext = index < screenshots.size() - 1;
 
-        minecraft.setScreen(new ScreenshotViewerScreen(
+        minecraft.gui.setScreen(new ScreenshotViewerScreen(
                 this, file,
                 () -> openViewer(index - 1), hasPrev,
                 () -> openViewer(index + 1), hasNext

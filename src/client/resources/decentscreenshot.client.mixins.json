@@ -4,7 +4,8 @@
   "package": "me.bloodred.dss.client.mixin",
   "compatibilityLevel": "JAVA_25",
   "client": [
-    "TitleScreenMixin"
+    "TitleScreenMixin",
+    "PauseScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1

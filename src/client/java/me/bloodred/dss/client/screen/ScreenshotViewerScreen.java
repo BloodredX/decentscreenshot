@@ -44,34 +44,36 @@ public class ScreenshotViewerScreen extends Screen {
         texture = ScreenshotTextureCache.getOrLoad(screenshotFile);
 
         int btnY = this.height - 24;
-        int btnW = 60;
+        int gap = 4;
+        int btnW = Math.max(1, Math.min(60, (this.width - 12 - gap * 4) / 5));
+        int firstBtnX = (this.width - (btnW * 5 + gap * 4)) / 2;
 
         // Back button — bottom-left
         addRenderableWidget(Button.builder(
-                Component.literal("◀ Back"),
-                btn -> minecraft.setScreen(parent)
-        ).pos(6, btnY).size(btnW, 18).build());
+                Component.literal("Back"),
+                btn -> minecraft.gui.setScreen(parent)
+        ).pos(firstBtnX, btnY).size(btnW, 18).build());
 
         // Prev / Next navigation buttons
         Button prevBtn = Button.builder(
-                Component.literal("← Prev"),
+                Component.literal("Prev"),
                 btn -> onPrev.run()
-        ).pos(this.width / 2 - 66, btnY).size(60, 18).build();
+        ).pos(firstBtnX + btnW + gap, btnY).size(btnW, 18).build();
         prevBtn.active = hasPrev;
         addRenderableWidget(prevBtn);
 
         Button nextBtn = Button.builder(
-                Component.literal("Next →"),
+                Component.literal("Next"),
                 btn -> onNext.run()
-        ).pos(this.width / 2 + 6, btnY).size(60, 18).build();
+        ).pos(firstBtnX + (btnW + gap) * 2, btnY).size(btnW, 18).build();
         nextBtn.active = hasNext;
         addRenderableWidget(nextBtn);
 
         // Rename button — bottom-right (left)
         addRenderableWidget(Button.builder(
                 Component.literal("Rename"),
-                btn -> minecraft.setScreen(new RenameScreenshotScreen(parent, this, screenshotFile))
-        ).pos(this.width - 132, btnY).size(60, 18).build());
+                btn -> minecraft.gui.setScreen(new RenameScreenshotScreen(parent, this, screenshotFile))
+        ).pos(firstBtnX + (btnW + gap) * 3, btnY).size(btnW, 18).build());
 
         // Delete button — bottom-right (right)
         addRenderableWidget(Button.builder(
@@ -84,20 +86,19 @@ public class ScreenshotViewerScreen extends Screen {
                             screenshotFile.delete();
                         }
                         ScreenshotTextureCache.release(screenshotFile);
-                        minecraft.setScreen(parent);
+                        minecraft.gui.setScreen(parent);
                     }
                 }
-        ).pos(this.width - 66, btnY).size(60, 18).build());
+        ).pos(firstBtnX + (btnW + gap) * 4, btnY).size(btnW, 18).build());
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-        // Dark background
-        graphics.fill(0, 0, this.width, this.height, 0xFF0A0A0A);
+        // The base Screen background supplies Minecraft's standard blur.
 
         if (texture != null) {
-            int maxFrameW = Math.max(160, (int) (this.width * 0.86));
-            int maxFrameH = Math.max(120, (int) ((this.height - 48) * 0.78));
+            int maxFrameW = Math.max(1, (int) (this.width * 0.86));
+            int maxFrameH = Math.max(1, (int) ((this.height - 48) * 0.78));
 
             double scale = Math.min(
                     (double) maxFrameW / texture.width(),
@@ -137,7 +138,7 @@ public class ScreenshotViewerScreen extends Screen {
     public boolean keyPressed(KeyEvent event) {
         // ESC → back to gallery
         if (event.key() == 256) {
-            minecraft.setScreen(parent);
+            minecraft.gui.setScreen(parent);
             return true;
         }
         // Arrow left/right for navigation

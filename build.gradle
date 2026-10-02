@@ -6,9 +6,7 @@ plugins {
 version = project.mod_version
 group = project.maven_group
 
-if (projectDir.absolutePath.contains("/mnt/media_rw") || projectDir.absolutePath.contains("/storage/") || projectDir.absolutePath.contains("my codings")) {
-	layout.buildDirectory.set(file("/data/data/com.termux/files/home/.gradle-builds/decentscreenshot/build"))
-}
+layout.buildDirectory.set(layout.projectDirectory.dir("build"))
 
 repositories {
 	mavenCentral()

@@ -21,7 +21,7 @@ public abstract class TitleScreenMixin extends Screen {
     private void addScreenshotGalleryButton(CallbackInfo info) {
         addRenderableWidget(Button.builder(
                 Component.literal("Screenshots"),
-                button -> minecraft.setScreen(new ScreenshotGalleryScreen(this))
+                button -> minecraft.gui.setScreen(new ScreenshotGalleryScreen(this))
         ).pos(this.width - 106, this.height - 52).size(100, 20).build());
     }
 }
